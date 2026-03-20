@@ -10,6 +10,6 @@ namespace mf_apis_web_services_fuel_manager.Models
         }
 
         public DbSet<Veiculo> Veiculos { get; set; }
-        public DbSet<Consumo> Consumo { get; set; }
+        public DbSet<Consumo> Consumos { get; set; }
     }
 }
