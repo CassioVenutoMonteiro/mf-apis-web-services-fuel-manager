@@ -1,16 +1,19 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using static mf_apis_web_services_fuel_manager.Models.LinkDto;
 
 namespace mf_apis_web_services_fuel_manager.Models
 {
     [Table("Usuarios")]
-    public class Usuario
+    public class Usuario : LinksHATEOS
     {
         [Key]
         public int Id { get; set; }
         [Required]
-        public string Name { get; set; }
+        public string Nome { get; set; }
         [Required]
+        [JsonIgnore]
         public string Password { get; set; }
         [Required]
         public int Perfil{ get; set; }
