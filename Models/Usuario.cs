@@ -16,7 +16,7 @@ namespace mf_apis_web_services_fuel_manager.Models
         [JsonIgnore]
         public string Password { get; set; }
         [Required]
-        public int Perfil{ get; set; }
+        public Perfil Perfil { get; set; }
 
         public ICollection<VeiculoUsuario> Veiculos { get; set; }
     }

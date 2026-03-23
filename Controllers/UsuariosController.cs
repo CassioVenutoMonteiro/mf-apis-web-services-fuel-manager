@@ -1,11 +1,17 @@
 ﻿using mf_apis_web_services_fuel_manager.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace mf_apis_web_services_fuel_manager.Controllers
 {
+    [Authorize(Roles = "Administrador")]
     [Route("api/[controller]")]
     [ApiController]
     public class UsuariosController : ControllerBase
@@ -16,7 +22,7 @@ namespace mf_apis_web_services_fuel_manager.Controllers
         {
             _context = context;
         }
-
+        
         [HttpGet]
         public async Task<ActionResult> GetAll()
         {
@@ -25,6 +31,7 @@ namespace mf_apis_web_services_fuel_manager.Controllers
             return Ok(model);
         }
 
+        [AllowAnonymous]
         [HttpPost]
         public async Task<ActionResult> Create(UsuarioDto model)
         {
@@ -33,7 +40,7 @@ namespace mf_apis_web_services_fuel_manager.Controllers
             {
                 Nome = model.Nome,
                 Password = BCrypt.Net.BCrypt.HashPassword(model.Password),
-                Perfil = model.Perfil
+                Perfil = (Perfil)model.Perfil
             };
 
             // model.Password = BCrypt.Net.BCrypt.HashPassword(model.Password);
@@ -92,6 +99,40 @@ namespace mf_apis_web_services_fuel_manager.Controllers
             model.Links.Add(new LinkDto(model.Id, Url.ActionLink(), rel: "self", metodo: "GET"));
             model.Links.Add(new LinkDto(model.Id, Url.ActionLink(), rel: "update", metodo: "PUT"));
             model.Links.Add(new LinkDto(model.Id, Url.ActionLink(), rel: "delete", metodo: "Delete"));
+        }
+
+        [AllowAnonymous]
+        [HttpPost("authenticate")]
+        public async Task<ActionResult> Authenticate(AuthenticateDto model)
+        {
+            var usuarioDb = await _context.Usuarios.FindAsync(model.Id);
+
+            if (usuarioDb == null || !BCrypt.Net.BCrypt.Verify(model.Password, usuarioDb.Password)) return Unauthorized("Usuario ou senha invalido");
+
+            var jwt = GenerateJwtToken(usuarioDb);
+
+            return Ok(new {jwtToken = jwt});
+        }
+
+        private string GenerateJwtToken(Usuario model)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes("Ry74cBQva5dThwbwchR9jhbtRFnJxWSZ");
+            var Claims = new ClaimsIdentity(new Claim[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, model.Id.ToString()),
+                new Claim(ClaimTypes.Role, model.Perfil.ToString())
+            });
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = Claims,
+                Expires = DateTime.UtcNow.AddHours(8),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
     }
 }
